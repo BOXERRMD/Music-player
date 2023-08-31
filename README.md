@@ -26,7 +26,7 @@ All you need to do is install the following module:
 - pyinstaller
 
 And run the following command in the main console (not the python console!):
-- pyinstaller Music-player --noconsole --onefile -i icone.ico
+- pyinstaller Music-player.py --noconsole --onefile -i icone.ico
 
 
 In your python project, you'll build two additional folders with the names "build" and "dist" and a "Music-player.spec" file.
