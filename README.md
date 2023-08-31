@@ -8,14 +8,14 @@ MP3 player entirely in python.
 Operates via a Tkinter interface and pygame module.
 
 Add-on module :
-os
-mutagen
+- os
+- mutagen
 
 
 Module version :
-Tkinter = Undefined
-pygame = 2.5.1
-mutagen = 1.46.0
+- Tkinter = Undefined
+- pygame = 2.5.1
+- mutagen = 1.46.0
 
 
 ### .exe file
