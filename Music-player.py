@@ -26,29 +26,19 @@ def copyright_():
 
 def help_():
     showinfo("HELP",
-             f"Back: Click once to replay the music. Double-click to play the previous song.\n\npause/resume : Click to pause or resume music.\n\nNext : Click to play the next song.\n\nStop : Stops all music and playback of the selected folder.\n\nRepeat : Check before playing a single song. To be ticked before the next music track for folder playback.")
+             f"Back: Click once to replay the music. Double-click to play the previous song.\n\npause/resume : Click to pause or resume music.\n\nNext : Click to play the next song.\n\nStop : Stops all music and playback of the selected folder.\n\nRepeat : Check before playing a single song.")
 
 
 def play_music(file_path):
     global current_song, artist, duration_in_seconds
     duration_in_seconds = time_music()
-    try:
-        pygame.mixer.music.load(file_path)
-        if repet_music_checkbox.get():
-            pygame.mixer.music.play(-1)
-        else:
-            pygame.mixer.music.play()
-        audio = File(file_path)
-        if 'TIT2' in audio:             #Regarde si dans le dictionnaire il y a la clé TIT2
-            title = audio['TIT2'][0]    #Récupère le titre de la chanson à partir de la clé
-        else:
-            title = "Unknown" #Sinon il renvoie UNKNOWN
-        if 'TPE1' in audio:
-            artist = audio['TPE1'][0]  # Récupère l'artist de la chanson à partir de la clé TPE1  (même principe que celui du dessus)
-        else:
-            artist = None
 
-        title_musique.config(text=f"{title} - {artist}\n{duration_in_seconds} s")    #On modifie l'affichage sur la fenêtre Tkinter
+    try:
+
+        pygame.mixer.music.load(file_path)
+        pygame.mixer.music.play()
+        title_musique.config(text=f"{info_music(file_path)[0]} -\n{info_music(file_path)[1]}\n{int(duration_in_seconds)} s")    #On modifie l'affichage sur la fenêtre Tkinter
+
     except pygame.error as e:
         if show_error_music_checkbox.get():
             title_musique.config(text="ERROR")
@@ -58,12 +48,25 @@ def play_music(file_path):
             current_song = current_song + 1
 
 
+def info_music(file_path):
+    audio = File(file_path)
+    if 'TIT2' in audio:  # Regarde si dans le dictionnaire il y a la clé TIT2
+        title = audio['TIT2'][0]  # Récupère le titre de la chanson à partir de la clé
+    else:
+        title = "Unknown title"  # Sinon il renvoie UNKNOWN
+    if 'TPE1' in audio:
+        artist = audio['TPE1'][0]  # Récupère l'artist de la chanson à partir de la clé TPE1  (même principe que celui du dessus)
+    else:
+        artist = "Unknown artist"
+    return title, artist
+
+
 def time_music():
     audio = MP3(file_path)
     return audio.info.length
 
 def select_file():
-    global duration_in_seconds, file_path, list
+    global file_path, list
     file_path = filedialog.askopenfilename(filetypes=[("Music Files", "*.mp3")])
     if file_path:
         play_music(file_path)
@@ -96,10 +99,14 @@ def stop_music():
     progress_bar.stop()
     list = []
     current_song = 0
-    title_musique.config(text="")
+    title_musique.config(text="Waiting for music...")
+    next_title_musique.config(text="next song :")
 
 
 def skip_music():
+    global current_song
+    if repet_music_checkbox.get():
+        current_song += 1
     pygame.mixer.music.stop()
     pygame.mixer.music.unload()
     progress_bar.stop()
@@ -107,7 +114,10 @@ def skip_music():
 
 def back_music():
     global current_song
-    current_song = current_song - 1
+    if repet_music_checkbox.get():
+        pass
+    else:
+        current_song = current_song - 1
     pygame.mixer.music.stop()
     pygame.mixer.music.unload()
     progress_bar.stop()
@@ -132,6 +142,8 @@ def update_progress():
     progress_bar['value'] = current_time / 1000
     #print(progress_bar['value'])
 
+    temps_musique.config(text=f"{int(mixer_music_get_pos / 1000)} s")
+
     # Appeler la fonction update_progress toutes les 1000 millisecondes
     root.after(1000, update_progress)
 
@@ -140,10 +152,16 @@ def update_playlist():
     global current_song, duration_in_seconds
     mixer_music_get_pos = pygame.mixer.music.get_pos()
 
-    if mixer_music_get_pos < 0.3:
+    if mixer_music_get_pos < 0.5:
         if len(list) > 0:
             try:
+                if repet_music_checkbox.get():
+                    if current_song == 0:
+                        pass
+                    else:
+                        current_song -= 1
                 play_music(list[current_song])
+                next_title_musique.config(text=f"next song : {info_music(list[current_song + 1])[0]} -\n{info_music(list[current_song + 1])[1]}")
             except:
                 pass
             current_song += 1
@@ -163,13 +181,13 @@ next_button = tk.Button(root, text="Next", foreground="blue", command=skip_music
 
 
 
-title_musique = tk.Label(root, text="", bg="yellow")
-title_musique.grid(row=1, column=0)
+title_musique = tk.Label(root, text="Waiting for music...", bg="yellow")
+title_musique.grid(row=1, column=0, pady=5)
 
 
-pause_resume_button.grid(row=0, column=2, ipadx=20, pady=5)
-next_button.grid(row=0, column=3, pady=5)
-back_button.grid(row=0, column=1, pady=5)
+pause_resume_button.grid(row=0, column=3, ipadx=20, pady=5)
+next_button.grid(row=0, column=4, pady=5)
+back_button.grid(row=0, column=2, pady=5)
 
 
 
@@ -177,27 +195,28 @@ back_button.grid(row=0, column=1, pady=5)
 
 
 stop_button = tk.Button(root, text="Stop", command=stop_music, foreground="red")
-stop_button.grid(row=1, pady=5, column=2)
+stop_button.grid(row=1, column=3, pady=5)
 
 
 
 
 
 file_button = tk.Button(root, text="Select music", relief="groove", foreground="green", command=select_file)
-file_button.grid(pady=5, column=2)
+file_button.grid(pady=5, column=3)
 
 
 
 
 
 file_button = tk.Button(root, text="Select folder", relief="groove", foreground="orange", command=select_folder)
-file_button.grid(pady=5, column=2)
+file_button.grid(pady=5, column=3)
 
 
 
 
 volume_scale = tk.Scale(root, from_=0, to=100, orient=tk.HORIZONTAL, label="Volume", command=set_volume)
-volume_scale.grid(column=0)
+volume_scale.set(100)
+volume_scale.grid(row=2, column=0)
 
 
 
@@ -211,16 +230,26 @@ show_error_music_checkbox.set(False)  # Par défaut, la case n'est pas cochée
 
 
 
-repet_checkbox = tk.Checkbutton(root, text="Repet (checked before starting the music)", variable=repet_music_checkbox)
-repet_checkbox.grid(column=0)
+repet_checkbox = tk.Checkbutton(root, text="Repeat", variable=repet_music_checkbox)
+repet_checkbox.grid(row=3,column=0)
 
 
 show_error_checkbox = tk.Checkbutton(root, text="Show error", variable=show_error_music_checkbox)
-show_error_checkbox.grid(column=0)
+show_error_checkbox.grid(row=4,column=0)
 
 
 progress_bar = ttk.Progressbar(root, orient='horizontal', length=300, mode='determinate')
-progress_bar.grid(pady=10, column=0)
+progress_bar.grid(row=5, column=0, pady=5, padx=5)
+
+
+temps_musique = tk.Label(root, text="")
+temps_musique.grid(row=5, column=1)
+
+
+
+next_title_musique = tk.Label(root, text="next song :")
+next_title_musique.grid(row=6, column=0, pady=5)
+
 
 
 #MENUBAR
