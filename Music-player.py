@@ -1,11 +1,15 @@
 import os
 import tkinter as tk
 from tkinter import filedialog, ttk
-from tkinter.messagebox import showerror, showinfo
+from tkinter.messagebox import *
 
+import mutagen.ogg
 import pygame
 from mutagen.mp3 import MP3
 from mutagen import File
+
+
+
 
 
 pygame.mixer.init()
@@ -14,33 +18,46 @@ duration_in_seconds = 1
 file_path = None
 list = []
 current_song = 0
-
+show_error = None
 
 
 
 def copyright_():
-    showinfo("COPYRIGHT", f"Copyright (c) 2001-2021 Python Software Foundation. All Rights Reserved.\nCopyright (c) "
-                          f"2000 BeOpen.com All Rights Reserved.\nCopyright (c) 1995-2001 Corporation for National "
-                          f"Research Initiatives All Rights Reserved.\nCopyright (c) 1991-1995 Stichting Mathematisch "
-                          f"Centrum, Amsterdam. All Rights Reserved.!")
+    showinfo("Creator", f"BOXER\n\n:D")
 
 def help_():
     showinfo("HELP",
              f"Back: Click once to replay the music. Double-click to play the previous song.\n\npause/resume : Click to pause or resume music.\n\nNext : Click to play the next song.\n\nStop : Stops all music and playback of the selected folder.\n\nRepeat : Check before playing a single song.")
 
 
+def show_error_choice():
+    global show_error
+    if not show_error:
+        if askyesno('Enable error', "If you enable errors, this may cause automatic constraints when switching from song to song. \nThis allows you to see which songs the player doesn't support. "):
+            show_error = True
+            return
+    if show_error:
+        if askyesno('Disable error', "If you deactivate errors, this will smooth out the flow of music, but will not warn you that a song cannot be played. If an error is encountered, it will move on to the next song without saying anything. For simple file playback, it won't play the file without warning you about the problem. "):
+            show_error = False
+            return
+
+
+
+
 def play_music(file_path):
-    global current_song, artist, duration_in_seconds
-    duration_in_seconds = time_music()
+    global current_song, duration_in_seconds, show_error
+
 
     try:
+        audio = MP3(file_path)
+        duration_in_seconds = audio.info.length
 
         pygame.mixer.music.load(file_path)
         pygame.mixer.music.play()
         title_musique.config(text=f"{info_music(file_path)[0]} -\n{info_music(file_path)[1]}\n{int(duration_in_seconds)} s")    #On modifie l'affichage sur la fenêtre Tkinter
 
-    except pygame.error as e:
-        if show_error_music_checkbox.get():
+    except pygame.error and mutagen.mp3.HeaderNotFoundError as e:
+        if show_error:
             title_musique.config(text="ERROR")
             showerror('ERROR', str(e))
             current_song = current_song + 1
@@ -61,16 +78,16 @@ def info_music(file_path):
     return title, artist
 
 
-def time_music():
-    audio = MP3(file_path)
-    return audio.info.length
+
 
 def select_file():
     global file_path, list
-    file_path = filedialog.askopenfilename(filetypes=[("Music Files", "*.mp3")])
+    file_path = filedialog.askopenfilename(filetypes=[("Music Files", "*.mp3;*.ogg;*.wave")])
     if file_path:
-        play_music(file_path)
-        list = []
+        if file_path.endswith(".mp3"):
+            play_music(file_path)
+            list = []
+
 
 def select_folder():
     global file_path, list, current_song
@@ -81,8 +98,8 @@ def select_folder():
             if file.endswith(".mp3"):
                 file_path = os.path.join(folder_path, file)
                 list.append(file_path)
-    skip_music()
-    current_song = 0
+        skip_music()
+        current_song = 0
 
 
 def pause_resume_music():
@@ -91,6 +108,7 @@ def pause_resume_music():
         progress_bar.stop()
     else:
         pygame.mixer.music.unpause()
+
 
 def stop_music():
     global list, current_song
@@ -234,8 +252,6 @@ repet_checkbox = tk.Checkbutton(root, text="Repeat", variable=repet_music_checkb
 repet_checkbox.grid(row=3,column=0)
 
 
-show_error_checkbox = tk.Checkbutton(root, text="Show error", variable=show_error_music_checkbox)
-show_error_checkbox.grid(row=4,column=0)
 
 
 progress_bar = ttk.Progressbar(root, orient='horizontal', length=300, mode='determinate')
@@ -258,6 +274,8 @@ menubar = tk.Menu(root)
 menu1 = tk.Menu(menubar, tearoff=0)
 menu1.add_command(label="Copyright", command=copyright_)
 menu1.add_command(label="Help", command=help_)
+menubar.add_command(label="Error", command=show_error_choice)
+
 menubar.add_cascade(label="Info", menu=menu1)
 root.config(menu=menubar)
 
