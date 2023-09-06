@@ -23,7 +23,7 @@ show_error = None
 
 
 def copyright_():
-    showinfo("Creator", f"BOXER\n\n:D")
+    showinfo("Copyright", f"Copyright (c) 2023 BOXERRMD\n\nAny use of the software as a financial instrument is strictly forbidden. \nAny software-related problems that may damage your computer are not supported by the application or its creator. \nYou can report bugs or security issues on GitHub or Discord: \nhttps://github.com/BOXERRMD/Music-player \nboxer9620")
 
 def help_():
     showinfo("HELP",
