@@ -86,7 +86,7 @@ def select_file():
     if file_path:
         if file_path.endswith(".mp3"):
             play_music(file_path)
-            list = []
+            list = [file_path]
 
 
 def select_folder():
@@ -193,6 +193,7 @@ root = tk.Tk()
 root.title("Music player")
 
 
+
 back_button = tk.Button(root, text="Back", foreground="blue", command=back_music)
 pause_resume_button = tk.Button(root, text="Pause/Resume", command=pause_resume_music)
 next_button = tk.Button(root, text="Next", foreground="blue", command=skip_music)
@@ -200,12 +201,12 @@ next_button = tk.Button(root, text="Next", foreground="blue", command=skip_music
 
 
 title_musique = tk.Label(root, text="Waiting for music...", bg="yellow")
-title_musique.grid(row=1, column=0, pady=5)
+title_musique.grid(row=1, column=1, pady=5)
 
 
-pause_resume_button.grid(row=0, column=3, ipadx=20, pady=5)
-next_button.grid(row=0, column=4, pady=5)
-back_button.grid(row=0, column=2, pady=5)
+pause_resume_button.grid(row=0, column=4, ipadx=20, pady=5)
+next_button.grid(row=0, column=5, pady=5)
+back_button.grid(row=0, column=3, pady=5)
 
 
 
@@ -213,29 +214,28 @@ back_button.grid(row=0, column=2, pady=5)
 
 
 stop_button = tk.Button(root, text="Stop", command=stop_music, foreground="red")
-stop_button.grid(row=1, column=3, pady=5)
+stop_button.grid(row=1, column=4, pady=5)
 
 
 
 
 
 file_button = tk.Button(root, text="Select music", relief="groove", foreground="green", command=select_file)
-file_button.grid(pady=5, column=3)
+file_button.grid(pady=5, column=4)
 
 
 
 
 
 file_button = tk.Button(root, text="Select folder", relief="groove", foreground="orange", command=select_folder)
-file_button.grid(pady=5, column=3)
+file_button.grid(pady=5, column=4)
 
 
 
 
 volume_scale = tk.Scale(root, from_=0, to=100, orient=tk.HORIZONTAL, label="Volume", command=set_volume)
 volume_scale.set(100)
-volume_scale.grid(row=2, column=0)
-
+volume_scale.grid(row=2, column=1)
 
 
 
@@ -249,22 +249,22 @@ show_error_music_checkbox.set(False)  # Par défaut, la case n'est pas cochée
 
 
 repet_checkbox = tk.Checkbutton(root, text="Repeat", variable=repet_music_checkbox)
-repet_checkbox.grid(row=3,column=0)
+repet_checkbox.grid(row=4,column=1)
 
 
 
 
 progress_bar = ttk.Progressbar(root, orient='horizontal', length=300, mode='determinate')
-progress_bar.grid(row=5, column=0, pady=5, padx=5)
+progress_bar.grid(row=5, column=1, pady=5, padx=5)
 
 
 temps_musique = tk.Label(root, text="")
-temps_musique.grid(row=5, column=1)
+temps_musique.grid(row=5, column=2)
 
 
 
 next_title_musique = tk.Label(root, text="next song :")
-next_title_musique.grid(row=6, column=0, pady=5)
+next_title_musique.grid(row=6, column=1, pady=5)
 
 
 
