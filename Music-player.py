@@ -8,10 +8,6 @@ import pygame
 from mutagen.mp3 import MP3
 from mutagen import File
 
-
-
-
-
 pygame.mixer.init()
 time_barre_progress = 0
 duration_in_seconds = 1
@@ -21,9 +17,10 @@ current_song = 0
 show_error = None
 
 
-
 def copyright_():
-    showinfo("Copyright", f"Copyright (c) 2023 BOXERRMD\n\nAny use of the software as a financial instrument is strictly forbidden. \nAny software-related problems that may damage your computer are not supported by the application or its creator. \nYou can report bugs or security issues on GitHub or Discord: \nhttps://github.com/BOXERRMD/Music-player \nboxer9620")
+    showinfo("Copyright",
+             f"Copyright (c) 2023 BOXERRMD\n\nAny use of the software as a financial instrument is strictly forbidden. \nAny software-related problems that may damage your computer are not supported by the application or its creator. \nYou can report bugs or security issues on GitHub or Discord: \nhttps://github.com/BOXERRMD/Music-player \nboxer9620")
+
 
 def help_():
     showinfo("HELP",
@@ -33,20 +30,19 @@ def help_():
 def show_error_choice():
     global show_error
     if not show_error:
-        if askyesno('Enable error', "If you enable errors, this may cause automatic constraints when switching from song to song. \nThis allows you to see which songs the player doesn't support. "):
+        if askyesno('Enable error',
+                    "If you enable errors, this may cause automatic constraints when switching from song to song. \nThis allows you to see which songs the player doesn't support. "):
             show_error = True
             return
     if show_error:
-        if askyesno('Disable error', "If you deactivate errors, this will smooth out the flow of music, but will not warn you that a song cannot be played. If an error is encountered, it will move on to the next song without saying anything. For simple file playback, it won't play the file without warning you about the problem. "):
+        if askyesno('Disable error',
+                    "If you deactivate errors, this will smooth out the flow of music, but will not warn you that a song cannot be played. If an error is encountered, it will move on to the next song without saying anything. For simple file playback, it won't play the file without warning you about the problem. "):
             show_error = False
             return
 
 
-
-
 def play_music(file_path):
     global current_song, duration_in_seconds, show_error
-
 
     try:
         audio = MP3(file_path)
@@ -54,7 +50,8 @@ def play_music(file_path):
 
         pygame.mixer.music.load(file_path)
         pygame.mixer.music.play()
-        title_musique.config(text=f"{info_music(file_path)[0]} -\n{info_music(file_path)[1]}\n{int(duration_in_seconds)} s")    #On modifie l'affichage sur la fenêtre Tkinter
+        title_musique.config(
+            text=f"{info_music(file_path)[0]} -\n{info_music(file_path)[1]}\n{int(duration_in_seconds)} s")  # On modifie l'affichage sur la fenêtre Tkinter
 
     except pygame.error and mutagen.mp3.HeaderNotFoundError as e:
         if show_error:
@@ -72,20 +69,20 @@ def info_music(file_path):
     else:
         title = "Unknown title"  # Sinon il renvoie UNKNOWN
     if 'TPE1' in audio:
-        artist = audio['TPE1'][0]  # Récupère l'artist de la chanson à partir de la clé TPE1  (même principe que celui du dessus)
+        artist = audio['TPE1'][
+            0]  # Récupère l'artist de la chanson à partir de la clé TPE1  (même principe que celui du dessus)
     else:
         artist = "Unknown artist"
     return title, artist
 
 
-
-
 def select_file():
-    global file_path, list
+    global file_path, list, current_song
     file_path = filedialog.askopenfilename(filetypes=[("Music Files", "*.mp3;*.ogg;*.wave")])
     if file_path:
         if file_path.endswith(".mp3"):
-            play_music(file_path)
+            skip_music()
+            current_song = 0
             list = [file_path]
 
 
@@ -103,6 +100,8 @@ def select_folder():
 
 
 def pause_resume_music():
+    if pygame.mixer.music.get_pos() < 0.3:
+        return
     if pygame.mixer.music.get_busy():
         pygame.mixer.music.pause()
         progress_bar.stop()
@@ -150,15 +149,13 @@ def update_progress():
 
     mixer_music_get_pos = pygame.mixer.music.get_pos()
 
-
-    #print("get_pos ", pygame.mixer.music.get_pos())
+    # print("get_pos ", pygame.mixer.music.get_pos())
     # Récupérer la position actuelle de la musique en secondes
     current_time = (mixer_music_get_pos * 100) / duration_in_seconds
 
-
     # Mettre à jour la barre de progression en fonction de la position actuelle
     progress_bar['value'] = current_time / 1000
-    #print(progress_bar['value'])
+    # print(progress_bar['value'])
 
     temps_musique.config(text=f"{int(mixer_music_get_pos / 1000)} s")
 
@@ -170,7 +167,7 @@ def update_playlist():
     global current_song, duration_in_seconds
     mixer_music_get_pos = pygame.mixer.music.get_pos()
 
-    if mixer_music_get_pos < 0.5:
+    if mixer_music_get_pos < 0.3:
         if len(list) > 0:
             try:
                 if repet_music_checkbox.get():
@@ -179,66 +176,42 @@ def update_playlist():
                     else:
                         current_song -= 1
                 play_music(list[current_song])
-                next_title_musique.config(text=f"next song : {info_music(list[current_song + 1])[0]} -\n{info_music(list[current_song + 1])[1]}")
+                next_title_musique.config(
+                    text=f"next song : {info_music(list[current_song + 1])[0]} -\n{info_music(list[current_song + 1])[1]}")
             except:
                 pass
+            if current_song > len(list):
+                stop_music()
             current_song += 1
     root.after(1000, update_playlist)
-
-
-
 
 
 root = tk.Tk()
 root.title("Music player")
 
-
-
 back_button = tk.Button(root, text="Back", foreground="blue", command=back_music)
 pause_resume_button = tk.Button(root, text="Pause/Resume", command=pause_resume_music)
 next_button = tk.Button(root, text="Next", foreground="blue", command=skip_music)
 
-
-
 title_musique = tk.Label(root, text="Waiting for music...", bg="yellow")
 title_musique.grid(row=1, column=1, pady=5)
-
 
 pause_resume_button.grid(row=0, column=4, ipadx=20, pady=5)
 next_button.grid(row=0, column=5, pady=5)
 back_button.grid(row=0, column=3, pady=5)
 
-
-
-
-
-
 stop_button = tk.Button(root, text="Stop", command=stop_music, foreground="red")
 stop_button.grid(row=1, column=4, pady=5)
-
-
-
-
 
 file_button = tk.Button(root, text="Select music", relief="groove", foreground="green", command=select_file)
 file_button.grid(pady=5, column=4)
 
-
-
-
-
 file_button = tk.Button(root, text="Select folder", relief="groove", foreground="orange", command=select_folder)
 file_button.grid(pady=5, column=4)
-
-
-
 
 volume_scale = tk.Scale(root, from_=0, to=100, orient=tk.HORIZONTAL, label="Volume", command=set_volume)
 volume_scale.set(100)
 volume_scale.grid(row=2, column=1)
-
-
-
 
 repet_music_checkbox = tk.BooleanVar()
 repet_music_checkbox.set(False)  # Par défaut, la case n'est pas cochée
@@ -246,29 +219,19 @@ repet_music_checkbox.set(False)  # Par défaut, la case n'est pas cochée
 show_error_music_checkbox = tk.BooleanVar()
 show_error_music_checkbox.set(False)  # Par défaut, la case n'est pas cochée
 
-
-
 repet_checkbox = tk.Checkbutton(root, text="Repeat", variable=repet_music_checkbox)
-repet_checkbox.grid(row=4,column=1)
-
-
-
+repet_checkbox.grid(row=4, column=1)
 
 progress_bar = ttk.Progressbar(root, orient='horizontal', length=300, mode='determinate')
 progress_bar.grid(row=5, column=1, pady=5, padx=5)
 
-
 temps_musique = tk.Label(root, text="")
 temps_musique.grid(row=5, column=2)
-
-
 
 next_title_musique = tk.Label(root, text="next song :")
 next_title_musique.grid(row=6, column=1, pady=5)
 
-
-
-#MENUBAR
+# MENUBAR
 menubar = tk.Menu(root)
 
 menu1 = tk.Menu(menubar, tearoff=0)
@@ -279,15 +242,7 @@ menubar.add_command(label="Error", command=show_error_choice)
 menubar.add_cascade(label="Info", menu=menu1)
 root.config(menu=menubar)
 
-
-
-
-
-
-
 update_playlist()
 update_progress()
 pygame.init()
 root.mainloop()
-
-
