@@ -35,3 +35,4 @@ The "dist" folder contains the project executable file. You can relocate it if y
 
 The "Music-player.spec" file can be removed from the project.
 
+For download the installer, folow this link : https://drive.google.com/file/d/1o1H7ApgB8HcdW7Fgz-78V_D757Dy3ob9/view?usp=sharing
