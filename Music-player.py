@@ -17,6 +17,7 @@ current_song = 0
 show_error = None
 
 
+
 def copyright_():
     showinfo("Copyright",
              f"Copyright (c) 2023 BOXERRMD\n\nAny use of the software as a financial instrument is strictly forbidden. \nAny software-related problems that may damage your computer are not supported by the application or its creator. \nYou can report bugs or security issues on GitHub or Discord: \nhttps://github.com/BOXERRMD/Music-player \nboxer9620")
@@ -63,17 +64,22 @@ def play_music(file_path):
 
 
 def info_music(file_path):
-    audio = File(file_path)
-    if 'TIT2' in audio:  # Regarde si dans le dictionnaire il y a la clé TIT2
-        title = audio['TIT2'][0]  # Récupère le titre de la chanson à partir de la clé
-    else:
-        title = "Unknown title"  # Sinon il renvoie UNKNOWN
-    if 'TPE1' in audio:
-        artist = audio['TPE1'][
-            0]  # Récupère l'artist de la chanson à partir de la clé TPE1  (même principe que celui du dessus)
-    else:
-        artist = "Unknown artist"
-    return title, artist
+    try:
+        audio = File(file_path)
+        if 'TIT2' in audio:  # Regarde si dans le dictionnaire il y a la clé TIT2
+            title = audio['TIT2'][0]  # Récupère le titre de la chanson à partir de la clé
+        else:
+            title = "Unknown title"  # Sinon il renvoie UNKNOWN
+        if 'TPE1' in audio:
+            artist = audio['TPE1'][
+                0]  # Récupère l'artist de la chanson à partir de la clé TPE1  (même principe que celui du dessus)
+        else:
+            artist = "Unknown artist"
+        return title, artist
+    except:
+        title = "ERROR"
+        artist = "Unable to read !"
+        return title, artist
 
 
 def select_file():
@@ -83,20 +89,25 @@ def select_file():
         if file_path.endswith(".mp3"):
             skip_music()
             current_song = 0
+            reset_listbox()
             list = [file_path]
 
 
 def select_folder():
     global file_path, list, current_song
-    list = []
     folder_path = filedialog.askdirectory()
     if folder_path:
+        reset_listbox()
+        list = []
         for file in os.listdir(folder_path):
             if file.endswith(".mp3"):
                 file_path = os.path.join(folder_path, file)
                 list.append(file_path)
+        items = [f"{i + 1} - {info_music(list[i])}" for i in range(len(list))]
+        liste.insert(tk.END, *items)
         skip_music()
         current_song = 0
+
 
 
 def pause_resume_music():
@@ -114,10 +125,13 @@ def stop_music():
     pygame.mixer.music.stop()
     pygame.mixer.music.unload()
     progress_bar.stop()
+    reset_listbox()
     list = []
     current_song = 0
     title_musique.config(text="Waiting for music...")
     next_title_musique.config(text="next song :")
+
+
 
 
 def skip_music():
@@ -144,8 +158,16 @@ def set_volume(volume):
     pygame.mixer.music.set_volume(int(volume) / 100)
 
 
+def set_listbox(event):
+    global current_song
+    current_song = liste.curselection()[0]
+    skip_music()
+
+def reset_listbox():
+    liste.delete(0, len(list)-1)
+
 def update_progress():
-    global duration_in_seconds
+    global duration_in_seconds, current_song
 
     mixer_music_get_pos = pygame.mixer.music.get_pos()
 
@@ -158,6 +180,7 @@ def update_progress():
     # print(progress_bar['value'])
 
     temps_musique.config(text=f"{int(mixer_music_get_pos / 1000)} s")
+
 
     # Appeler la fonction update_progress toutes les 1000 millisecondes
     root.after(1000, update_progress)
@@ -182,6 +205,7 @@ def update_playlist():
                 pass
             if current_song > len(list):
                 stop_music()
+                reset_listbox()
             current_song += 1
     root.after(1000, update_playlist)
 
@@ -230,6 +254,13 @@ temps_musique.grid(row=5, column=2)
 
 next_title_musique = tk.Label(root, text="next song :")
 next_title_musique.grid(row=6, column=1, pady=5)
+
+
+
+liste = tk.Listbox(root, height=10, width=50, highlightcolor="purple", highlightbackground="purple", background="#f9ccff")
+liste.grid(row=7, column=1, pady=5)
+liste.bind('<<ListboxSelect>>', set_listbox)
+
 
 # MENUBAR
 menubar = tk.Menu(root)
