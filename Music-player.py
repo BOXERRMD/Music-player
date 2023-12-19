@@ -26,29 +26,29 @@ class lecteur_mp3():
         self.root.title("Music player")
         self.root.iconbitmap("icone.ico")
 
-        self.back_button = tk.Button(self.root, text="Back", foreground="blue", command=self.back_music)
-        self.pause_resume_button = tk.Button(self.root, text="Pause/Resume", command=self.pause_resume_music)
-        self.next_button = tk.Button(self.root, text="Next", foreground="blue", command=self.skip_music)
+        self.back_button = tk.Button(self.root, text="Back", foreground="blue", command=self.back_music, font=("font", 10))
+        self.pause_resume_button = tk.Button(self.root, text="Pause/Resume", command=self.pause_resume_music, font=("font", 10))
+        self.next_button = tk.Button(self.root, text="Next", foreground="blue", command=self.skip_music, font=("font", 10))
+        self.pause_resume_button.grid(row=0, column=4, ipadx=20, pady=5, ipady=5)
+        self.next_button.grid(row=0, column=5, pady=5, ipadx=10, ipady=5)
+        self.back_button.grid(row=0, column=3, pady=5, ipadx=10, ipady=5)
 
-        self.title_musique = tk.Label(self.root, text="Waiting for music...", bg="yellow")
+
+        self.title_musique = tk.Label(self.root, text="Waiting for music...", bg="yellow", anchor="center", font=("font", 12))
         self.title_musique.grid(row=1, column=1, pady=5)
 
-        self.pause_resume_button.grid(row=0, column=4, ipadx=20, pady=5)
-        self.next_button.grid(row=0, column=5, pady=5)
-        self.back_button.grid(row=0, column=3, pady=5)
-
-        self.stop_button = tk.Button(self.root, text="Stop", command=self.stop_music, foreground="red")
+        self.stop_button = tk.Button(self.root, text="Stop", command=self.stop_music, foreground="red", font=("font", 10))
         self.stop_button.grid(row=1, column=4, pady=5)
 
-        self.file_button = tk.Button(self.root, text="Select music", relief="groove", foreground="green", command=self.select_file)
-        self.file_button.grid(pady=5, column=4)
+        self.file_button = tk.Button(self.root, text="Select music", relief="solid", foreground="green", command=self.select_file, font=("font", 12))
+        self.file_button.grid(pady=5, column=4, ipadx=10, ipady=5)
 
-        self.file_button = tk.Button(self.root, text="Select folder", relief="groove", foreground="orange", command=self.select_folder)
-        self.file_button.grid(pady=5, column=4)
+        self.file_button = tk.Button(self.root, text="Select folder", relief="solid", foreground="purple", command=self.select_folder, font=("font", 12))
+        self.file_button.grid(pady=5, column=4, ipadx=10, ipady=5)
 
-        self.volume_scale = tk.Scale(self.root, from_=0, to=100, orient=tk.HORIZONTAL, label="Volume", command=self.set_volume)
+        self.volume_scale = tk.Scale(self.root, from_=0, to=100, length=150, orient=tk.HORIZONTAL, label="Volume", command=self.set_volume)
         self.volume_scale.set(100)
-        self.volume_scale.grid(row=2, column=1)
+        self.volume_scale.grid(row=3, column=1)
 
         self.repet_music_checkbox = tk.BooleanVar()
         self.repet_music_checkbox.set(False)  # Par défaut, la case n'est pas cochée
@@ -57,19 +57,19 @@ class lecteur_mp3():
         self.show_error_music_checkbox.set(False)  # Par défaut, la case n'est pas cochée
 
         self.repet_checkbox = tk.Checkbutton(self.root, text="Repeat", variable=self.repet_music_checkbox)
-        self.repet_checkbox.grid(row=4, column=1)
+        self.repet_checkbox.grid(row=5, column=1, sticky="e")
 
-        self.progress_bar = ttk.Progressbar(self.root, orient='horizontal', length=300, mode='determinate')
+        self.progress_bar = ttk.Progressbar(self.root, orient='horizontal', length=250, mode='determinate')
         self.progress_bar.grid(row=5, column=1, pady=5, padx=5)
 
-        self.temps_musique = tk.Label(self.root, text="")
-        self.temps_musique.grid(row=5, column=2)
+        self.temps_musique = tk.Label(self.root, text="", font=("font", 10))
+        self.temps_musique.grid(row=5, column=1, sticky="w")
 
-        self.next_title_musique = tk.Label(self.root, text="next song :")
-        self.next_title_musique.grid(row=6, column=1, pady=5)
+        self.next_title_musique = tk.Label(self.root, text="next song :", bg="lightblue")
+        self.next_title_musique.grid(row=2, column=1, pady=5)
 
         self.liste = tk.Listbox(self.root, height=10, width=50, highlightcolor="purple", highlightbackground="purple",
-                           background="#f9ccff")
+                           background="#f9ccff", font=("font", 11))
         self.liste.grid(row=7, column=1, pady=5)
         self.liste.bind('<<ListboxSelect>>', self.set_listbox)
 
@@ -89,6 +89,7 @@ class lecteur_mp3():
         self.menubar.add_cascade(label="YouTube", menu=self.menu2)
         self.root.config(menu=self.menubar)
 
+        self.root.bind("<Key>", self.key_press_event)
         lecteur_mp3.update_playlist(self)
         lecteur_mp3.update_progress(self)
         pygame.init()
@@ -215,6 +216,25 @@ class lecteur_mp3():
     def set_volume(self, volume):
         pygame.mixer.music.set_volume(int(volume) / 100)
 
+    def key_press_event(self, event):
+        # Si la touche "+" du pavé numérique est pressée et que le focus est sur la fenêtre principale
+        if event.keysym == 'plus' and self.root.focus_get() == self.root:
+            current_volume = self.volume_scale.get()
+            if current_volume < 100:
+                new_volume = min(100, int(current_volume) + 5)  # Augmente le volume par incrément de 5
+                self.volume_scale.set(new_volume)
+                pygame.mixer.music.set_volume(new_volume / 100)
+
+        # Si la touche "-" du pavé numérique est pressée et que le focus est sur la fenêtre principale
+        elif event.keysym == 'minus' and self.root.focus_get() == self.root:
+            current_volume = self.volume_scale.get()
+            if current_volume > 0:
+                new_volume = max(0, int(current_volume) - 5)  # Diminue le volume par incrément de 5
+                self.volume_scale.set(new_volume)
+                pygame.mixer.music.set_volume(new_volume / 100)
+
+
+
     def set_listbox(self, event):
         self.current_song = self.liste.curselection()[0]
         self.skip_music()
@@ -261,7 +281,7 @@ class lecteur_mp3():
                 self.current_song += 1
         self.root.after(1000, self.update_playlist)
 
-
+# -column, -columnspan, -in, -ipadx, -ipady, -padx, -pady, -row, -rowspan, or -sticky
 
 class DownloadMP3MP4:
     def __init__(self, root):
@@ -272,22 +292,22 @@ class DownloadMP3MP4:
         self.value = tk.StringVar()
         self.value.set("Put a YouTube link")
         self.entree = tk.Entry(self.root2, width=30, borderwidth=10, textvariable=self.value)
-        self.entree.grid()
+        self.entree.grid(ipadx=30, ipady=20)
 
-        self.bouton_dlmp3 = tk.Button(self.root2, text="Download mp3", command=self.dl_mp3, borderwidth=2, background="yellow")
-        self.bouton_dlmp3.grid()
+        self.bouton_dlmp3 = tk.Button(self.root2, text="Download mp3", command=self.dl_mp3, borderwidth=2, background="yellow", relief="solid")
+        self.bouton_dlmp3.grid(sticky="e", row=1, padx=5, pady=5, ipadx=10, ipady=5)
 
-        self.bouton_dlmp4 = tk.Button(self.root2, text="Download mp4", command=self.dl_mp4, borderwidth=2, background="cyan")
-        self.bouton_dlmp4.grid()
+        self.bouton_dlmp4 = tk.Button(self.root2, text="Download mp4", command=self.dl_mp4, borderwidth=2, background="cyan", relief="solid")
+        self.bouton_dlmp4.grid(sticky="w", row=1, padx=5, pady=5, ipadx=10, ipady=5)
 
     def dl_mp3(self):
         if "https" in self.entree.get():
             yt = YouTube(self.entree.get())
             stream = yt.streams.filter(only_audio=True).first()
             stream.download(output_path='Downloaded audio', filename=f"{yt.title}.mp3")
-            showinfo("Download", stream.get_file_path())
+            showinfo("Download", f"Download path : {stream.get_file_path()}")
         else:
-            showerror("ERROR", "It's not a valide link !")
+            showerror("ERROR", "It's not a valide YouTube link !")
 
     def dl_mp4(self):
         if "https" in self.entree.get():
@@ -296,7 +316,7 @@ class DownloadMP3MP4:
             stream.download(output_path='Downloaded video', filename=f"{yt.title}.mp4")
             showinfo("Download", stream.get_file_path())
         else:
-            showerror("ERROR", "It's not a valide link !")
+            showerror("ERROR", "It's not a valide YouTube link !")
 
 
 
