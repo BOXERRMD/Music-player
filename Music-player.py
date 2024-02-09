@@ -1,27 +1,32 @@
 import os
+import time
 import tkinter as tk
 from tkinter import filedialog, ttk
 from tkinter.messagebox import *
 
 
 import mutagen.ogg
-import pygame
+import vlc
 from mutagen.mp3 import MP3
 from mutagen import File
 from pytube import YouTube
 
 
+window_youtube = False
+window_radio = False
 
 class lecteur_mp3():
     def __init__(self):
         super().__init__()
-        pygame.mixer.init()
         self.time_barre_progress = 0
         self.duration_in_seconds = 1
         self.file_path = None
         self.list = []
         self.current_song = 0
         self.show_error = None
+        self.player = None
+        self.is_playing = False
+        self.is_paused = False
         self.root = tk.Tk()
         self.root.title("Music player")
         self.root.iconbitmap("icone.ico")
@@ -84,19 +89,33 @@ class lecteur_mp3():
 
         self.menu2 = tk.Menu(self.menubar, tearoff=0)
         self.menu2.add_command(label="Download mp3 - mp4", command=self.downloadmp3mp4)
+        self.menu2.add_command(label="Radio", command=self.radio)
 
         self.menubar.add_cascade(label="Info", menu=self.menu1)
-        self.menubar.add_cascade(label="YouTube", menu=self.menu2)
+        self.menubar.add_cascade(label="Autre", menu=self.menu2)
         self.root.config(menu=self.menubar)
 
         self.root.bind("<Key>", self.key_press_event)
         lecteur_mp3.update_playlist(self)
         lecteur_mp3.update_progress(self)
-        pygame.init()
         self.root.mainloop()
 
     def downloadmp3mp4(self):
-        DownloadMP3MP4(self.root)
+        global window_youtube
+        if not window_youtube:
+            DownloadMP3MP4(self.root)
+            window_youtube = True
+        else:
+            showerror(title="Window already open !", message="The window is already open !")
+
+    def radio(self):
+        global window_radio
+        if not window_radio:
+            radio(self.root)
+            window_radio = True
+        else:
+            showerror(title="Window already open !", message="The window is already open !")
+
 
     def copyright_(self):
         showinfo("Copyright",
@@ -124,12 +143,13 @@ class lecteur_mp3():
             audio = MP3(file_path)
             self.duration_in_seconds = audio.info.length
 
-            pygame.mixer.music.load(file_path)
-            pygame.mixer.music.play()
+            self.player = vlc.MediaPlayer(file_path)
+            self.player.play()
+            self.is_playing = True
             self.title_musique.config(
                 text=f"{self.current_song + 1} : {self.info_music(file_path)[0]} -\n{self.info_music(file_path)[1]}\n{int(self.duration_in_seconds)} s")  # On modifie l'affichage sur la fenêtre Tkinter
 
-        except pygame.error and mutagen.mp3.HeaderNotFoundError as e:
+        except vlc.libvlc_errmsg() and mutagen.mp3.HeaderNotFoundError as e:
             if self.show_error:
                 self.title_musique.config(text="ERROR")
                 showerror('ERROR', str(e))
@@ -156,7 +176,7 @@ class lecteur_mp3():
             return title, artist
 
     def select_file(self):
-        self.file_path = filedialog.askopenfilename(filetypes=[("Music Files", "*.mp3;*.ogg;*.wave")])
+        self.file_path = filedialog.askopenfilename(filetypes=[("Music Files", "*.mp3;*.ogg;*.wave;*.mp4")])
         if self.file_path:
             if self.file_path.endswith(".mp3"):
                 self.skip_music()
@@ -179,29 +199,32 @@ class lecteur_mp3():
             self.current_song = 0
 
     def pause_resume_music(self):
-        if pygame.mixer.music.get_pos() < 0.3:
-            return
-        if pygame.mixer.music.get_busy():
-            pygame.mixer.music.pause()
+        if self.player.is_playing():
+            self.player.pause()
+            self.is_paused = True
             self.progress_bar.stop()
         else:
-            pygame.mixer.music.unpause()
+            self.player.play()
+            self.is_paused = False
 
     def stop_music(self):
-        pygame.mixer.music.stop()
-        pygame.mixer.music.unload()
+        self.player.stop()
         self.progress_bar.stop()
         self.reset_listbox()
         self.list = []
         self.current_song = 0
+        self.is_playing = False
         self.title_musique.config(text="Waiting for music...")
         self.next_title_musique.config(text="next song :")
 
     def skip_music(self):
         if self.repet_music_checkbox.get():
             self.current_song += 1
-        pygame.mixer.music.stop()
-        pygame.mixer.music.unload()
+        if self.player is None:
+            pass
+        else:
+            self.player.stop()
+        self.is_playing = False
         self.progress_bar.stop()
 
     def back_music(self):
@@ -209,12 +232,12 @@ class lecteur_mp3():
             pass
         else:
             self.current_song = self.current_song - 1
-        pygame.mixer.music.stop()
-        pygame.mixer.music.unload()
+        self.player.stop()
         self.progress_bar.stop()
+        self.is_playing = False
 
     def set_volume(self, volume):
-        pygame.mixer.music.set_volume(int(volume) / 100)
+        self.player.audio_set_volume(int(volume))
 
     def key_press_event(self, event):
         # Si la touche "+" du pavé numérique est pressée et que le focus est sur la fenêtre principale
@@ -223,7 +246,7 @@ class lecteur_mp3():
             if current_volume < 100:
                 new_volume = min(100, int(current_volume) + 5)  # Augmente le volume par incrément de 5
                 self.volume_scale.set(new_volume)
-                pygame.mixer.music.set_volume(new_volume / 100)
+                self.player.audio_set_volume(new_volume)
 
         # Si la touche "-" du pavé numérique est pressée et que le focus est sur la fenêtre principale
         elif event.keysym == 'minus' and self.root.focus_get() == self.root:
@@ -231,7 +254,7 @@ class lecteur_mp3():
             if current_volume > 0:
                 new_volume = max(0, int(current_volume) - 5)  # Diminue le volume par incrément de 5
                 self.volume_scale.set(new_volume)
-                pygame.mixer.music.set_volume(new_volume / 100)
+                self.player.audio_set_volume(new_volume)
 
 
 
@@ -243,42 +266,56 @@ class lecteur_mp3():
         self.liste.delete(0, len(self.list) - 1)
 
     def update_progress(self):
+        mixer_music_get_pose = 0
 
-        mixer_music_get_pos = pygame.mixer.music.get_pos()
+        try:
+            mixer_music_get_pose = self.player.get_time()
+        except:
+            pass
 
         # print("get_pos ", pygame.mixer.music.get_pos())
         # Récupérer la position actuelle de la musique en secondes
-        current_time = (mixer_music_get_pos * 100) / self.duration_in_seconds
+        current_time = (mixer_music_get_pose * 100) / self.duration_in_seconds
 
         # Mettre à jour la barre de progression en fonction de la position actuelle
         self.progress_bar['value'] = current_time / 1000
         # print(progress_bar['value'])
 
-        self.temps_musique.config(text=f"{int(mixer_music_get_pos / 1000)} s")
+        self.temps_musique.config(text=f"{int(mixer_music_get_pose / 1000)} s")
 
         # Appeler la fonction update_progress toutes les 1000 millisecondes
         self.root.after(1000, self.update_progress)
 
     def update_playlist(self):
-        mixer_music_get_pos = pygame.mixer.music.get_pos()
-
-        if mixer_music_get_pos < 0.3:
-            if len(self.list) > 0:
-                try:
-                    if self.repet_music_checkbox.get():
-                        if self.current_song == 0:
-                            pass
-                        else:
-                            self.current_song -= 1
-                    self.play_music(self.list[self.current_song])
-                    self.next_title_musique.config(
-                        text=f"next song : {self.info_music(self.list[self.current_song + 1])[0]} -\n{self.info_music(self.list[self.current_song + 1])[1]}")
-                except:
+        if self.is_playing:
+            if self.player.is_playing() == 1:
+                pass
+            else:
+                if self.is_paused:
                     pass
-                if self.current_song > len(self.list):
-                    self.stop_music()
-                    self.reset_listbox()
-                self.current_song += 1
+                else:
+                    self.is_playing = False
+
+        if not self.is_playing:
+            if len(self.list) > 0:
+                if not self.is_playing:
+                    time.sleep(0.5)
+                    try:
+                        if self.repet_music_checkbox.get():
+                            if self.current_song == 0:
+                                pass
+                            else:
+                                self.current_song -= 1
+                        self.play_music(self.list[self.current_song])
+                        self.next_title_musique.config(
+                            text=f"next song : {self.info_music(self.list[self.current_song + 1])[0]} -\n{self.info_music(self.list[self.current_song + 1])[1]}")
+                    except:
+                        pass
+                    if self.current_song > len(self.list):
+                        self.stop_music()
+                        self.reset_listbox()
+                    self.current_song += 1
+
         self.root.after(1000, self.update_playlist)
 
 # -column, -columnspan, -in, -ipadx, -ipady, -padx, -pady, -row, -rowspan, or -sticky
@@ -300,6 +337,7 @@ class DownloadMP3MP4:
         self.bouton_dlmp4 = tk.Button(self.root2, text="Download mp4", command=self.dl_mp4, borderwidth=2, background="cyan", relief="solid")
         self.bouton_dlmp4.grid(sticky="w", row=1, padx=5, pady=5, ipadx=10, ipady=5)
 
+
     def dl_mp3(self):
         if "https" in self.entree.get():
             yt = YouTube(self.entree.get())
@@ -320,6 +358,57 @@ class DownloadMP3MP4:
 
 
 
+class radio:
+    def __init__(self, root):
+        self.root3 = tk.Toplevel(root)
+        self.root3.title("Music player - Radio")
+        self.root3.iconbitmap("icone.ico")
+        self.player = None
+
+        self.liste = tk.Listbox(self.root3, height=10, width=50, highlightcolor="purple", highlightbackground="purple",
+                                background="#f9ccff", font=("font", 11))
+        self.liste.grid(row=1, column=1, pady=5)
+        self.liste.bind('<<ListboxSelect>>', self.set_listbox)
+        self.radios = {"0": ["Cherie FM", "https://scdn.nrjaudio.fm/fr/30201/mp3_128.mp3?origine=radio.net&cdn_path=adswizz_lbs8&access_token=8397f26ebcd2482aa366024fbf010d12"],
+                       "1": ["Nostalgie", "https://scdn.nrjaudio.fm/fr/30601/mp3_128.mp3?origine=radio.net&cdn_path=adswizz_lbs11&access_token=b838a59691984281ab25b55d271d4a24"],
+                       "2": ["RTL", "https://streamer-04.rtl.fr/rtl-1-44-128"],
+                       "3": ["RTL 2", "https://streamer-03.rtl.fr/rtl2-1-44-128"],
+                       "4": ["Europe 1", "https://stream.europe1.fr/europe1.mp3?aw_0_1st.playerid=lgrdrnwsRadiofr"],
+                       "5": ["Europe 2", "https://europe2.lmn.fm/europe2.mp3?aw_0_1st.playerid=lgrdnwsRadiofr"],
+                       "6": ["NRJ", "https://scdn.nrjaudio.fm/fr/30001/mp3_128.mp3?origine=radio.net&cdn_path=adswizz_lbs10&access_token=22fde58939e043d188b04d382af4f920"],
+                       "7": ["SkyRock", "https://icecast.skyrock.net/s/natio_aac_96k"],
+                       "8": ["FunRadio", "https://streamer-01.rtl.fr/fun-1-44-128"],
+                       "9": ["France Culture", "https://icecast.radiofrance.fr/franceculture-hifi.aac"],
+                       "10": ["FranceInfo", "https://icecast.radiofrance.fr/franceinfo-midfi.mp3"]}
+        self.liste.insert(tk.END, *[i[0] for i in self.radios.values()])
+
+        self.stop = tk.Button(self.root3, text="Stop radio", foreground="red", font=("font", 10), command=self.stop)
+        self.stop.grid(row=2, column=1)
+
+        self.root3.protocol("WM_DELETE_WINDOW", self.fermeture_de_fenetre)
+
+
+    def set_listbox(self, event):
+        try:
+            if self.player.is_playing():
+                self.player.stop()
+        except:
+            pass
+
+        self.instance = vlc.Instance("--no-xlib --quiet")
+        self.player = self.instance.media_player_new()
+        self.media = self.instance.media_new(self.radios[str(self.liste.curselection()[0])][1])
+        self.player.set_media(self.media)
+
+        self.player.play()
+
+    def stop(self):
+        self.player.stop()
+        self.player.exit()
+
+    def fermeture_de_fenetre(self):
+        self.player.stop()
+        self.root3.destroy()
 
 
 lecteur_mp3()
